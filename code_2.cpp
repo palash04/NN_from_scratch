@@ -44,24 +44,26 @@ class Graph{
     vector<Node*> preSoftOutput_nodes;
     int label;
 public:
-    void linear(int numOfInputNodes, int numOfOutputNodes, bool bias, bool first_layer) {
-        int numOfWeightNodes = numOfInputNodes * numOfOutputNodes;
-        if (bias) {
-            numOfInputNodes += 1;
-            numOfWeightNodes += numOfOutputNodes;
-        }
+    void linear(int numOfInputNodes, int numOfOutputNodes, bool first_layer) {
 
+        numOfInputNodes += 1;       // for bias
+
+        int numOfWeightNodes = numOfInputNodes * numOfOutputNodes;
         vector<Node*> input_vec(numOfInputNodes);
         vector<Node*> weight_vec(numOfWeightNodes);
         vector<Node*> hidden_vec(numOfOutputNodes);
 
+        // weights init
+        vector<double> weigths = init_weights(numOfWeightNodes);
+
         if (first_layer) {
+            // creating input nodes
             for (int i=0; i < numOfInputNodes; i++) {
                 Node *newNode = new Node();
-                newNode->type = (i == numOfInputNodes-1) ? "bias_node" : "input_node";
+                newNode->type = "input_node";
                 newNode->indegree = 0;
                 input_vec[i] = newNode;
-                if (i == numOfInputNodes-1) {
+                if (i == numOfInputNodes - 1) {
                     newNode->val = 1.0;
                 }
             }
@@ -69,18 +71,13 @@ public:
             input_nodes = input_vec;
         }else {
             input_vec = output_nodes;
-
-            if (bias) {
-                Node *newNode = new Node();
-                newNode->val = 1.0;
-                newNode->type = "bias_node";
-                newNode->indegree = 0;
-                input_vec.push_back(newNode);
-            }
+            Node *newNode = new Node();
+            newNode->type = "input_node";
+            newNode->indegree = 0;
+            newNode->val = 1.0;
+            input_vec.push_back(newNode);
+            iso_nodes.push_back(newNode);
         }
-
-        // weights init
-        vector<double> weigths = init_weights(numOfWeightNodes);
 
         // creating weight nodes
         for (int i=0;i<numOfWeightNodes;i++) {
@@ -118,7 +115,6 @@ public:
             wi->outdegree += 1;
 
             count = (count + 1) % numOfInputNodes;
-
             operator_vec[i] = newNode;
         }
 
@@ -152,7 +148,7 @@ public:
         }
 
         iso_nodes.insert(iso_nodes.end(), weight_vec.begin(), weight_vec.end());
-
+        
         output_nodes.clear();
         output_nodes = hidden_vec;
     }
@@ -215,7 +211,6 @@ public:
     }
 
     vector<Node*> forward(vector<double> &X) {
-
         for (int i=0;i<X.size();i++) {
             input_nodes[i]->val = X[i];
         }
@@ -312,9 +307,7 @@ public:
             }
             // update weight
             if (node->type == "weight_node") {
-                //cout << node->val << " ";
                 node->val = node->val - alpha * node->gradient;
-                //cout << node->val << "\n";
             }
         }
     }
@@ -343,16 +336,15 @@ int main() {
     }
 
     vector<double> X = {120,224};
-    int target = 5;
+    int target = 7;
     normalize(X);
 
     vector<Node*> last_layer;
     for (int i=0;i<n-1;i++) {
         if (i == 0)
-            g.linear(layers_info[i],layers_info[i+1], true, true);
+            g.linear(layers_info[i],layers_info[i+1], true);
         else
-            g.linear(layers_info[i],layers_info[i+1], true, false);
-
+            g.linear(layers_info[i],layers_info[i+1], false);
     }
 
     // add softmax layer
